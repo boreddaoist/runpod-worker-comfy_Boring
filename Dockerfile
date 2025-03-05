@@ -85,6 +85,14 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
     fi
 
+RUN wget  -O models/liveportrait/appearance_feature_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/appearance_feature_extractor.safetensors 
+RUN wget  -O models/liveportrait/landmark.onnx https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark.onnx
+RUN wget  -O models/liveportrait/landmark_model.pth https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark_model.pth
+RUN wget  -O models/liveportrait/motion_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/motion_extractor.safetensors
+RUN wget  -O models/liveportrait/spade_generator.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/spade_generator.safetensors
+RUN wget  -O models/liveportrait/stitching_retargeting_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/stitching_retargeting_module.safetensors
+RUN wget  -O models/liveportrait/warping_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/warping_module.safetensors
+
 # Stage 3: Final image
 FROM base as final
 
