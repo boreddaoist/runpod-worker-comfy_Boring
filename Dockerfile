@@ -75,7 +75,7 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget  -O models/liveportrait/spade_generator.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/spade_generator.safetensors && \
       wget  -O models/liveportrait/stitching_retargeting_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/stitching_retargeting_module.safetensors && \
       wget  -O models/liveportrait/warping_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/warping_module.safetensors; 
-
+   fi
 # Stage 3: Final image
 FROM base AS final
 
