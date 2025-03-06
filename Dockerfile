@@ -66,8 +66,8 @@ WORKDIR /comfyui
 # Create necessary directories
 RUN mkdir -p models/checkpoints models/vae models/liveportrait
 
-
-RUN   wget  -O models/liveportrait/appearance_feature_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/appearance_feature_extractor.safetensors && \ 
+RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
+      wget  -O models/liveportrait/appearance_feature_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/appearance_feature_extractor.safetensors && \ 
       wget  -O models/liveportrait/landmark.onnx https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark.onnx && \
       wget  -O models/liveportrait/landmark_model.pth https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark_model.pth && \
       wget  -O models/liveportrait/motion_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/motion_extractor.safetensors && \
