@@ -137,7 +137,6 @@
         "inference-gpu==0.9.13": "",
         "inference-sdk==0.17.0": "",
         "iniconfig==2.0.0": "",
-        "insightface": "https://github.com/Gourieff/Assets/raw/main/Insightface/insightface-0.7.3-cp310-cp310-win_amd64.whl#sha256=47aa0571b2aadd8545d4bc7615dfbc374c10180c283b7ac65058fcb41ed4df86",
         "iopath==0.1.10": "",
         "jax==0.4.38": "",
         "jaxlib==0.4.38": "",
