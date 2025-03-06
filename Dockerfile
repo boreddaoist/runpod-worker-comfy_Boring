@@ -64,7 +64,7 @@ ARG MODEL_TYPE="sdxl"
 WORKDIR /comfyui
 
 # Create necessary directories
-RUN mkdir -p models/checkpoints models/vae  models/liveportrait
+RUN mkdir -p models/checkpoints models/vae models/liveportrait
 
 
 RUN   wget  -O models/liveportrait/appearance_feature_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/appearance_feature_extractor.safetensors && \ 
@@ -75,14 +75,7 @@ RUN   wget  -O models/liveportrait/appearance_feature_extractor.safetensors http
       wget  -O models/liveportrait/stitching_retargeting_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/stitching_retargeting_module.safetensors && \
       wget  -O models/liveportrait/warping_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/warping_module.safetensors; \
 
-# Download checkpoints/vae/LoRA to include in image based on model type
-RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
-    elif [ "$MODEL_TYPE" = "sd3" ]; then \
-    elif [ "$MODEL_TYPE" = "flux1-schnell" ]; then \
-     
-    elif [ "$MODEL_TYPE" = "flux1-dev" ]; then \
-     
-    fi
+
 
 # Stage 3: Final image
 FROM base as final
