@@ -17,22 +17,6 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     ffmpeg \
-    pyyaml \
-    numpy=1.26.4 \
-    opencv-python \
-    pilgram \
-    rembg \
-    fairscale=0.4.4 \
-    onnxruntime-gpu \
-    pykalman \
-    mediapipe \
-    gitpython \
-    imageio \
-    transformers \
-    joblib \
-    matplotlib \
-    numba \
-    onnx2torch \
     libgl1 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
