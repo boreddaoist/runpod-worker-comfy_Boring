@@ -18,8 +18,11 @@ RUN apt-get update && apt-get install -y \
     wget \
     ffmpeg \
     pyyaml \
-    numpy<=1.26.4 \
+    numpy=1.26.4 \
     opencv-python \
+    pilgram \
+    rembg \
+    fairscale=0.4.4 \
     onnxruntime-gpu \
     pykalman \
     mediapipe \
