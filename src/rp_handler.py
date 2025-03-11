@@ -25,38 +25,29 @@ COMFY_POLLING_MAX_RETRIES = int(os.environ.get("COMFY_POLLING_MAX_RETRIES", 500)
 # Host where ComfyUI is running
 COMFY_HOST = "127.0.0.1:8188"
 # Enforce a clean state after each job is done
-# see https://docs.runpod.io/docs/handler-additional-controls#refresh-worker
 REFRESH_WORKER = os.environ.get("REFRESH_WORKER", "false").lower() == "true"
 
 
 def validate_input(job_input):
     """
     Validates the input for the handler function.
-
-    Args:
-        job_input (dict): The input data to validate.
-
+    
     Returns:
-        tuple: A tuple containing the validated data and an error message, if any.
-               The structure is (validated_data, error_message).
+        tuple: (validated_data, error_message)
     """
-    # Validate if job_input is provided
     if job_input is None:
         return None, "Please provide input"
 
-    # Check if input is a string and try to parse it as JSON
     if isinstance(job_input, str):
         try:
             job_input = json.loads(job_input)
         except json.JSONDecodeError:
             return None, "Invalid JSON format in input"
 
-    # Validate 'workflow' in input
     workflow = job_input.get("workflow")
     if workflow is None:
         return None, "Missing 'workflow' parameter"
 
-    # Validate 'images' in input, if provided
     images = job_input.get("images")
     if images is not None:
         if not isinstance(images, list) or not all(
@@ -67,276 +58,202 @@ def validate_input(job_input):
                 "'images' must be a list of objects with 'name' and 'image' keys",
             )
 
-    # Return validated data and no error
     return {"workflow": workflow, "images": images}, None
 
 
 def check_server(url, retries=500, delay=50):
     """
-    Check if a server is reachable via HTTP GET request
-
-    Args:
-    - url (str): The URL to check
-    - retries (int, optional): The number of times to attempt connecting to the server. Default is 50
-    - delay (int, optional): The time in milliseconds to wait between retries. Default is 500
-
-    Returns:
-    bool: True if the server is reachable within the given number of retries, otherwise False
+    Check if ComfyUI API is reachable
+    Returns: bool - True if server is ready
     """
-
     for i in range(retries):
         try:
-            response = requests.get(url)
-
-            # If the response status code is 200, the server is up and running
-            if response.status_code == 200:
-                print(f"runpod-worker-comfy - API is reachable")
+            if requests.get(url).status_code == 200:
+                logging.info("ComfyUI API is reachable")
                 return True
-        except requests.RequestException as e:
-            # If an exception occurs, the server may not be ready
+        except requests.RequestException:
             pass
-
-        # Wait for the specified delay before retrying
         time.sleep(delay / 1000)
-
-    print(
-        f"runpod-worker-comfy - Failed to connect to server at {url} after {retries} attempts."
-    )
+    logging.error(f"Failed to connect to ComfyUI at {url} after {retries} attempts")
     return False
 
 
 def upload_images(images):
-    """
-    Upload a list of base64 encoded images to the ComfyUI server using the /upload/image endpoint.
-
-    Args:
-        images (list): A list of dictionaries, each containing the 'name' of the image and the 'image' as a base64 encoded string.
-        server_address (str): The address of the ComfyUI server.
-
-    Returns:
-        list: A list of responses from the server for each image upload.
-    """
+    """Upload base64 encoded images to ComfyUI"""
     if not images:
         return {"status": "success", "message": "No images to upload", "details": []}
 
     responses = []
     upload_errors = []
-
-    print(f"runpod-worker-comfy - image(s) upload")
+    logging.info("Starting image upload")
 
     for image in images:
         name = image["name"]
-        image_data = image["image"]
-        blob = base64.b64decode(image_data)
-
-        # Prepare the form data
+        blob = base64.b64decode(image["image"])
         files = {
             "image": (name, BytesIO(blob), "image/png"),
             "overwrite": (None, "true"),
         }
-
-        # POST request to upload the image
-        response = requests.post(f"http://{COMFY_HOST}/upload/image", files=files)
-        if response.status_code != 200:
-            upload_errors.append(f"Error uploading {name}: {response.text}")
-        else:
-            responses.append(f"Successfully uploaded {name}")
+        try:
+            response = requests.post(f"http://{COMFY_HOST}/upload/image", files=files)
+            if response.status_code == 200:
+                responses.append(f"Uploaded {name}")
+            else:
+                upload_errors.append(f"{name}: {response.text}")
+        except Exception as e:
+            upload_errors.append(f"{name}: {str(e)}")
 
     if upload_errors:
-        print(f"runpod-worker-comfy - image(s) upload with errors")
+        logging.error(f"Image upload completed with {len(upload_errors)} errors")
         return {
             "status": "error",
-            "message": "Some images failed to upload",
+            "message": "Partial upload failure",
             "details": upload_errors,
         }
 
-    print(f"runpod-worker-comfy - image(s) upload complete")
+    logging.info("All images uploaded successfully")
     return {
         "status": "success",
-        "message": "All images uploaded successfully",
+        "message": "All images uploaded",
         "details": responses,
     }
 
 
 def queue_workflow(workflow):
-    """
-    Queue a workflow to be processed by ComfyUI
-
-    Args:
-        workflow (dict): A dictionary containing the workflow to be processed
-
-    Returns:
-        dict: The JSON response from ComfyUI after processing the workflow
-    """
-
-    # The top level element "prompt" is required by ComfyUI
+    """Queue workflow with ComfyUI"""
     data = json.dumps({"prompt": workflow}).encode("utf-8")
-
     req = urllib.request.Request(f"http://{COMFY_HOST}/prompt", data=data)
     return json.loads(urllib.request.urlopen(req).read())
 
 
 def get_history(prompt_id):
-    """
-    Retrieve the history of a given prompt using its ID
-
-    Args:
-        prompt_id (str): The ID of the prompt whose history is to be retrieved
-
-    Returns:
-        dict: The history of the prompt, containing all the processing steps and results
-    """
+    """Retrieve workflow execution history"""
     with urllib.request.urlopen(f"http://{COMFY_HOST}/history/{prompt_id}") as response:
         return json.loads(response.read())
 
 
 def base64_encode(img_path):
-    """
-    Returns base64 encoded image.
-
-    Args:
-        img_path (str): The path to the image
-
-    Returns:
-        str: The base64 encoded image
-    """
+    """Encode image file to base64 string"""
     with open(img_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-        return f"{encoded_string}"
+        return base64.b64encode(image_file.read()).decode("utf-8")
 
 
 def process_output_images(outputs, job_id):
-    """Updated to handle video output"""
-    # First check for video output
-    video_dir = os.path.join(os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output"), "videos")
-    if os.path.exists(video_dir):  # Check if video directory exists
-        video_files = [f for f in os.listdir(video_dir) if f.startswith("LP") and f.endswith(".mp4")]
+    """
+    Handle both video and image outputs with priority to videos
+    Returns: dict - {status: str, message: str, is_video: bool?}
+    """
+    COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
+    
+    # Video handling
+    video_dir = os.path.join(COMFY_OUTPUT_PATH, "videos")
+    if os.path.isdir(video_dir):
+        video_files = sorted(
+            [f for f in os.listdir(video_dir) if f.startswith("LP") and f.endswith(".mp4")],
+            key=lambda x: os.path.getctime(os.path.join(video_dir, x)),
+            reverse=True
+        )
         
         if video_files:
             video_path = os.path.join(video_dir, video_files[0])
-            if os.path.exists(video_path):
-                logging.info(f"Found video output: {video_path}")
-        
-                if os.environ.get("BUCKET_ENDPOINT_URL"):
-                    logging.info(f"Uploading video to S3: {video_path}")
+            logging.info(f"Processing video output: {video_path}")
+            
+            if os.environ.get("BUCKET_ENDPOINT_URL"):
+                try:
                     video_url = rp_upload.upload_image(job_id, video_path)
-                    return {"status": "success", "message": video_url}
-                else:
-                    logging.info("Encoding video as base64")
-                    with open(video_path, "rb") as video_file:
-                        video_base64 = base64.b64encode(video_file.read()).decode("utf-8")
-                    return {"status": "success", "message": video_base64, "is_video": True}
+                    return {"status": "success", "message": video_url, "is_video": True}
+                except Exception as e:
+                    logging.error(f"Video upload failed: {str(e)}")
+            else:
+                try:
+                    with open(video_path, "rb") as f:
+                        return {"status": "success", 
+                                "message": base64.b64encode(f.read()).decode("utf-8"),
+                                "is_video": True}
+                except Exception as e:
+                    logging.error(f"Video encoding failed: {str(e)}")
 
-    # Existing image handling as fallback
-    COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
+    # Image handling fallback
     output_images = {}
-
     for node_id, node_output in outputs.items():
         if "images" in node_output:
             for image in node_output["images"]:
-                output_images = os.path.join(image["subfolder"], image["filename"])
+                img_path = os.path.join(image["subfolder"], image["filename"])
+                output_images = img_path
 
-    print(f"runpod-worker-comfy - image generation is done")
-
-    local_image_path = f"{COMFY_OUTPUT_PATH}/{output_images}"
-    print(f"runpod-worker-comfy - {local_image_path}")
-
+    local_image_path = os.path.join(COMFY_OUTPUT_PATH, output_images)
     if os.path.exists(local_image_path):
-        if os.environ.get("BUCKET_ENDPOINT_URL", False):
-            image = rp_upload.upload_image(job_id, local_image_path)
-            print("runpod-worker-comfy - image uploaded to AWS S3")
-        else:
-            image = base64_encode(local_image_path)
-            print("runpod-worker-comfy - image converted to base64")
-            
-        return {"status": "success", "message": image}
+        logging.info(f"Processing image output: {local_image_path}")
+        try:
+            if os.environ.get("BUCKET_ENDPOINT_URL"):
+                return {"status": "success", "message": rp_upload.upload_image(job_id, local_image_path)}
+            return {"status": "success", "message": base64_encode(local_image_path)}
+        except Exception as e:
+            logging.error(f"Image processing failed: {str(e)}")
+            return {"status": "error", "message": str(e)}
     
-    print("runpod-worker-comfy - no output found")
-    return {"status": "error", "message": "No output generated"}
+    return {"status": "error", "message": "No output files generated"}
+
+
 def handler(job):
-    """
-    The main function that handles a job of generating an image.
-
-    This function validates the input, sends a prompt to ComfyUI for processing,
-    polls ComfyUI for result, and retrieves generated images.
-
-    Args:
-        job (dict): A dictionary containing job details and input parameters.
-
-    Returns:
-        dict: A dictionary containing either an error message or a success status with generated images.
-    """
+    """Main job handler function"""
     job_input = job["input"]
+    
+    # Validate input
+    validated_data, error = validate_input(job_input)
+    if error:
+        return {"error": error}
 
-    # Make sure that the input is valid
-    validated_data, error_message = validate_input(job_input)
-    if error_message:
-        return {"error": error_message}
-
-    # Extract validated data
-    workflow = validated_data["workflow"]
-    images = validated_data.get("images")
-
-    # Make sure that the ComfyUI API is available
-    check_server(
+    # Verify API availability
+    if not check_server(
         f"http://{COMFY_HOST}",
         COMFY_API_AVAILABLE_MAX_RETRIES,
         COMFY_API_AVAILABLE_INTERVAL_MS,
-    )
+    ):
+        return {"error": "ComfyUI API unavailable"}
 
-    # Upload images if they exist
-    upload_result = upload_images(images)
-
+    # Upload input images
+    upload_result = upload_images(validated_data.get("images", []))
     if upload_result["status"] == "error":
         return upload_result
 
-    # Queue the workflow
+    # Queue workflow
     try:
-        queued_workflow = queue_workflow(workflow)
-        prompt_id = queued_workflow["prompt_id"]
-        print(f"runpod-worker-comfy - queued workflow with ID {prompt_id}")
+        queued = queue_workflow(validated_data["workflow"])
+        prompt_id = queued["prompt_id"]
+        logging.info(f"Queued workflow ID: {prompt_id}")
     except Exception as e:
-        return {"error": f"Error queuing workflow: {str(e)}"}
+        return {"error": f"Workflow queueing failed: {str(e)}"}
 
     # Poll for completion
-    print(f"runpod-worker-comfy - wait until image generation is complete")
-    retries = 0
+    logging.info("Starting output polling")
+    start_time = time.time()
     try:
-        while retries < COMFY_POLLING_MAX_RETRIES:
+        while (time.time() - start_time) < (COMFY_POLLING_MAX_RETRIES * COMFY_POLLING_INTERVAL_MS / 1000):
             history = get_history(prompt_id)
-
-            # Exit the loop if we have found the history
             if prompt_id in history and history[prompt_id].get("outputs"):
                 break
-            else:
-                # Wait before trying again
-                time.sleep(COMFY_POLLING_INTERVAL_MS / 1000)
-                retries += 1
+            time.sleep(COMFY_POLLING_INTERVAL_MS / 1000)
         else:
-            return {"error": "Max retries reached while waiting for image generation"}
+            return {"error": "Workflow execution timeout"}
     except Exception as e:
-        return {"error": f"Error waiting for image generation: {str(e)}"}
+        return {"error": f"Polling failed: {str(e)}"}
 
-    # Get the generated image and return it as URL in an AWS bucket or as base64
-    images_result = process_output_images(history[prompt_id].get("outputs"), job["id"])
+    # Process outputs
+    result = process_output_images(history[prompt_id].get("outputs", {}), job["id"])
+    
+    # Cleanup
+    try:
+        output_dir = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
+        for root, dirs, files in os.walk(output_dir):
+            for f in files:
+                os.remove(os.path.join(root, f))
+        logging.info("Output directory cleaned")
+    except Exception as e:
+        logging.warning(f"Cleanup error: {str(e)}")
 
-    result = {**images_result, "refresh_worker": REFRESH_WORKER}
-
-    # ==== NEW CLEANUP CODE STARTS HERE ====
-    video_dir = os.path.join(os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output"), "videos")
-    if os.path.exists(video_dir):
-        try:
-            for f in os.listdir(video_dir):
-                if f.startswith("LP") and f.endswith(".mp4"):
-                    os.remove(os.path.join(video_dir, f))
-                    logging.info(f"Cleaned up video file: {f}")
-        except Exception as cleanup_error:
-            logging.error(f"Cleanup failed: {str(cleanup_error)}")
-    # ==== NEW CLEANUP CODE ENDS HERE ====
-
-    return result
+    return {**result, "refresh_worker": REFRESH_WORKER}
 
 
-# Start the handler only if this script is run directly
 if __name__ == "__main__":
     runpod.serverless.start({"handler": handler})
