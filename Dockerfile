@@ -17,10 +17,12 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     ffmpeg \
-    opencv \
     libgl1 \
+    && pip install opencv-python-headless==4.10.0.84 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
-    && ln -sf /usr/bin/pip3 /usr/bin/pip
+    && ln -sf /usr/bin/pip3 /usr/bin/pip 
+    
+    
 
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
