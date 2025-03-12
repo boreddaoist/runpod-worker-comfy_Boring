@@ -17,7 +17,7 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     ffmpeg \
-    opencv \
+    python3-opencv \
     libgl1 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
@@ -66,7 +66,7 @@ ARG MODEL_TYPE
 WORKDIR /comfyui
 
 # Create necessary directories
-RUN mkdir -p models/checkpoints models/vae models/liveportrait
+RUN mkdir -p models/checkpoints models/vae models/liveportrait 
 
 # Download checkpoints/vae/LoRA to include in image based on model type
 RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
