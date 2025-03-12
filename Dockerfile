@@ -19,6 +19,11 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     python3-opencv \
     libgl1 \
+    liblapack-dev \
+    libatlas-base-dev \
+    gfortran \
+    && pip install pykalman==0.10.1 \
+    && pip install scipy==1.11.4 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
