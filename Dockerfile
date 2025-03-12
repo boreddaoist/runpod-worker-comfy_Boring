@@ -30,9 +30,13 @@ RUN apt-get update && apt-get install -y \
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install comfy-cli
-
-RUN pip install comfy-cli
+# Install comfy-cli and setup git
+RUN pip install comfy-cli && \
+    cd /comfyui && \
+    git init && \
+    git remote add origin https://github.com/boreddaoist/comfyui.git && \
+    git fetch --tags && \
+    /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
 
 # Install ComfyUI
 RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
