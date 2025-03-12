@@ -9,8 +9,7 @@ ENV PIP_PREFER_BINARY=1
 ENV PYTHONUNBUFFERED=1 
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
-ENV COMFY_OUTPUT_PATH=/comfyui/output
-RUN mkdir -p ${COMFY_OUTPUT_PATH}/videos
+
 # Install Python, git and other necessary tools
 RUN apt-get update && apt-get install -y \
     python3.10 \
@@ -21,6 +20,7 @@ RUN apt-get update && apt-get install -y \
     libgl1 \
     libsm6 \
     libxext6 \
+    && pip install opencv-python-headless==4.10.0.84 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip 
     
@@ -29,13 +29,9 @@ RUN apt-get update && apt-get install -y \
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
-# Install comfy-cli and setup git
-RUN pip install comfy-cli && \
-    cd /comfyui && \
-    git init && \
-    git remote add origin https://github.com/boreddaoist/comfyui.git && \
-    git fetch --tags && \
-    /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
+# Install comfy-cli
+
+RUN pip install comfy-cli
 
 # Install ComfyUI
 RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
