@@ -27,9 +27,10 @@ RUN apt-get update && apt-get install -y \
     && pip install comfyui-frontend-package \
     && pip install pykalman==0.10.1 \
     && pip install scipy==1.11.4 \
+    && pip install imageio-ffmpeg \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
-
+     
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
