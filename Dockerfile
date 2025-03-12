@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     ffmpeg \
+    libsm6 \
+    libxext6 \
     python3-opencv \
     libgl1 \
     liblapack-dev \
@@ -57,6 +59,7 @@ ADD *snapshot*.json /
 
 # Restore the snapshot to install custom nodes
 RUN /restore_snapshot.sh
+    comfy --workspace /comfyui install-package comfyui-frontend-package==1.10.17 --dest /comfyui/web/extensions/core
 
 # Start container
 CMD ["/start.sh"]
