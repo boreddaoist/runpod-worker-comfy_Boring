@@ -59,7 +59,7 @@ ADD *snapshot*.json /
 
 # Restore the snapshot to install custom nodes
 RUN /restore_snapshot.sh
-    comfy --workspace /comfyui install-package comfyui-frontend-package==1.10.17 --dest /comfyui/web/extensions/core
+RUN comfy --workspace /comfyui install-package comfyui-frontend-package==1.10.17 --dest /comfyui/web/extensions/core
 
 # Start container
 CMD ["/start.sh"]
