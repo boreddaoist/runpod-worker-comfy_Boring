@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     liblapack-dev \
     libatlas-base-dev \
     gfortran \
+    && pip install numba \
     && pip install comfyui-frontend-package \
     && pip install pykalman==0.10.1 \
     && pip install scipy==1.11.4 \
