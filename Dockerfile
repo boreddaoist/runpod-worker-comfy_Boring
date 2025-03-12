@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
     libatlas-base-dev \
     gfortran \
     && pip install numba \
+    && pip install mediapipe \
     && pip install onnxruntime \
     && pip install comfyui-frontend-package \
     && pip install pykalman==0.10.1 \
