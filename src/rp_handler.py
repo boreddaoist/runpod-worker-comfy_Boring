@@ -139,39 +139,30 @@ def base64_encode(img_path):
 
 
 def process_output_images(outputs, job_id):
-    """
-    Handle both video and image outputs with priority to videos
-    Returns: dict - {status: str, message: str, is_video: bool?}
-    """
     COMFY_OUTPUT_PATH = os.environ.get("COMFY_OUTPUT_PATH", "/comfyui/output")
     
-    # Video handling
-    video_dir = os.path.join(COMFY_OUTPUT_PATH, "videos")
-    if os.path.isdir(video_dir):
-        video_files = sorted(
-            [f for f in os.listdir(video_dir) if f.startswith("LP") and f.endswith(".mp4")],
-            key=lambda x: os.path.getctime(os.path.join(video_dir, x)),
-            reverse=True
-        )
+    # 1. First check for videos in root output directory
+    all_files = os.listdir(COMFY_OUTPUT_PATH)
+    video_files = [f for f in all_files if f.startswith("LP_") and f.endswith(".mp4")]
+    
+    if video_files:
+        # Get most recent video
+        video_files.sort(key=lambda x: os.path.getctime(os.path.join(COMFY_OUTPUT_PATH, x)))
+        video_path = os.path.join(COMFY_OUTPUT_PATH, video_files[-1])
         
-        if video_files:
-            video_path = os.path.join(video_dir, video_files[0])
-            logging.info(f"Processing video output: {video_path}")
-            
+        try:
             if os.environ.get("BUCKET_ENDPOINT_URL"):
-                try:
-                    video_url = rp_upload.upload_image(job_id, video_path)
-                    return {"status": "success", "message": video_url, "is_video": True}
-                except Exception as e:
-                    logging.error(f"Video upload failed: {str(e)}")
+                video_url = rp_upload.upload_file(job_id, video_path)
+                return {"status": "success", "message": video_url, "is_video": True}
             else:
-                try:
-                    with open(video_path, "rb") as f:
-                        return {"status": "success", 
-                                "message": base64.b64encode(f.read()).decode("utf-8"),
-                                "is_video": True}
-                except Exception as e:
-                    logging.error(f"Video encoding failed: {str(e)}")
+                with open(video_path, "rb") as f:
+                    return {
+                        "status": "success",
+                        "message": base64.b64encode(f.read()).decode("utf-8"),
+                        "is_video": True
+                    }
+        except Exception as e:
+            return {"status": "error", "message": f"Video handling failed: {str(e)}"}
 
     # Image handling fallback
     output_images = {}
