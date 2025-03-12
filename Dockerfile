@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     liblapack-dev \
     libatlas-base-dev \
     gfortran \
+    && pip install comfyui-frontend-package \
     && pip install pykalman==0.10.1 \
     && pip install scipy==1.11.4 \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
@@ -59,7 +60,6 @@ ADD *snapshot*.json /
 
 # Restore the snapshot to install custom nodes
 RUN /restore_snapshot.sh
-RUN comfy --workspace /comfyui install-package comfyui-frontend-package==1.10.17 --dest /comfyui/web/extensions/core
 
 # Start container
 CMD ["/start.sh"]
