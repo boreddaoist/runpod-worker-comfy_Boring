@@ -78,17 +78,12 @@ ARG MODEL_TYPE
 WORKDIR /comfyui
 
 # Create necessary directories
-RUN mkdir -p models/checkpoints models/vae models/liveportrait 
+RUN mkdir -p models/checkpoints models/vae models/inpaint 
 
 # Download checkpoints/vae/LoRA to include in image based on model type
 RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
-      wget -O models/liveportrait/appearance_feature_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/appearance_feature_extractor.safetensors && \ 
-      wget -O models/liveportrait/landmark.onnx https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark.onnx && \
-      wget -O models/liveportrait/landmark_model.pth https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/landmark_model.pth && \
-      wget -O models/liveportrait/motion_extractor.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/motion_extractor.safetensors && \
-      wget -O models/liveportrait/spade_generator.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/spade_generator.safetensors && \
-      wget -O models/liveportrait/stitching_retargeting_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/stitching_retargeting_module.safetensors && \
-      wget -O models/liveportrait/warping_module.safetensors https://huggingface.co/Kijai/LivePortrait_safetensors/resolve/main/warping_module.safetensors; \
+      wget -O models/inpaint/inpaint_v26.fooocus.patch https://huggingface.co/lllyasviel/fooocus_inpaint/resolve/main/inpaint_v26.fooocus.patch && \ 
+
    fi
 # Stage 3: Final image
 FROM base AS final
